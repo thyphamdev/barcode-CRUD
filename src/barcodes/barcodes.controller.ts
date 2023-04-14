@@ -24,12 +24,18 @@ export class BarcodesController {
   }
 
   @Patch(':id')
-  update(@Param() params: IdParams, @Body() updateBarcodeDto: UpdateBarcodeDto) {
-    return this.barcodesService.update(params.id, updateBarcodeDto);
+  async update(@Param() params: IdParams, @Body() updateBarcodeDto: UpdateBarcodeDto) {
+    const affected = await this.barcodesService.update(params.id, updateBarcodeDto);
+    return {
+      message: `${affected} barcode was updated`
+    }
   }
 
   @Delete(':id')
-  remove(@Param() params: IdParams) {
-    return this.barcodesService.remove(params.id);
+  async remove(@Param() params: IdParams) {
+    const affected = await this.barcodesService.remove(params.id);
+    return {
+      message: `${affected} barcode was deleted`
+    }
   }
 }

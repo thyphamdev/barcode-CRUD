@@ -21,21 +21,25 @@ export class BarcodesService {
     return this.barcodeRepo.findOne({ where: { id } })
   }
 
-  update(id: number, updateBarcodeDto: UpdateBarcodeDto) {
-    return this.barcodeRepo.createQueryBuilder()
+  async update(id: number, updateBarcodeDto: UpdateBarcodeDto) {
+    const updateResult = await this.barcodeRepo.createQueryBuilder()
       .update(Barcode)
       .set({
         barcode: updateBarcodeDto.barcode
       })
       .where("id = :id", { id })
       .execute()
+
+    return updateResult.affected
   }
 
-  remove(id: number) {
-    return this.barcodeRepo.createQueryBuilder()
+  async remove(id: number) {
+    const deleteResult = await this.barcodeRepo.createQueryBuilder()
       .delete()
       .from(Barcode)
       .where("id = :id", { id })
       .execute()
+
+    return deleteResult.affected
   }
 }
