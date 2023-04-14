@@ -10,22 +10,32 @@ export class BarcodesService {
   constructor(@InjectRepository(Barcode) private barcodeRepo: Repository<Barcode>) { }
 
   create(createBarcodeDto: CreateBarcodeDto) {
-    return 'This action adds a new barcode';
+    return this.barcodeRepo.save(createBarcodeDto)
   }
 
   findAll() {
-    return `This action returns all barcodes`;
+    return this.barcodeRepo.find()
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} barcode`;
+    return this.barcodeRepo.findOne({ where: { id } })
   }
 
   update(id: number, updateBarcodeDto: UpdateBarcodeDto) {
-    return `This action updates a #${id} barcode`;
+    return this.barcodeRepo.createQueryBuilder()
+      .update(Barcode)
+      .set({
+        barcode: updateBarcodeDto.barcode
+      })
+      .where("id = :id", { id })
+      .execute()
   }
 
   remove(id: number) {
-    return `This action removes a #${id} barcode`;
+    return this.barcodeRepo.createQueryBuilder()
+      .delete()
+      .from(Barcode)
+      .where("id = :id", { id })
+      .execute()
   }
 }

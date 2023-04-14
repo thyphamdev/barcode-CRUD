@@ -16,6 +16,7 @@ import { Barcode } from './barcodes/entities/barcode.entity';
       type: 'sqlite',
       database: 'barcodeDB',
       entities: [Barcode],
+      synchronize: true,
     }),
     BarcodesModule,
   ],
