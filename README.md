@@ -7,6 +7,9 @@ $ npm install
 ## Running the app
 
 ```bash
+# Spin up elasticsearch
+docker-compose up
+
 # development
 $ npm run start
 
