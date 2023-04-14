@@ -3,18 +3,91 @@ import { CreateBarcodeDto } from './dto/create-barcode.dto';
 import { UpdateBarcodeDto } from './dto/update-barcode.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Barcode } from './entities/barcode.entity';
-import { Repository } from 'typeorm';
+import { FindManyOptions, Like, Repository } from 'typeorm';
+import { ElasticsearchService } from '@nestjs/elasticsearch';
 
 @Injectable()
 export class BarcodesService {
-  constructor(@InjectRepository(Barcode) private barcodeRepo: Repository<Barcode>) { }
+  esIndex = 'barcodes'
 
-  create(createBarcodeDto: CreateBarcodeDto) {
-    return this.barcodeRepo.save(createBarcodeDto)
+  constructor(
+    @InjectRepository(Barcode) private barcodeRepo: Repository<Barcode>,
+    private esClient: ElasticsearchService
+  ) { }
+
+  public async createIndex() {
+    // create index if doesn't exist
+    try {
+      const checkIndex = await this.esClient.indices.exists({ index: this.esIndex });
+      if (!checkIndex) {
+        await this.esClient.indices.create({
+          index: this.esIndex,
+          body: {
+            "settings": {
+              "analysis": {
+                "filter": {
+                  "trigrams_filter": {
+                    "type": "ngram",
+                    "min_gram": 2,
+                    "max_gram": 3
+                  }
+                },
+                "analyzer": {
+                  "trigrams": {
+                    "type": "custom",
+                    "tokenizer": "standard",
+                    "filter": [
+                      "lowercase",
+                      "trigrams_filter"
+                    ]
+                  }
+                }
+              }
+            },
+            "mappings": {
+              "properties": {
+                "barcode": {
+                  "type": "text",
+                  "analyzer": "trigrams"
+                }
+              }
+            }
+          },
+        })
+
+      }
+    } catch (err) {
+    }
   }
 
-  findAll() {
-    return this.barcodeRepo.find()
+  async create(createBarcodeDto: CreateBarcodeDto) {
+    const barcode = await this.barcodeRepo.save(createBarcodeDto)
+    await this.esClient.index({
+      index: 'barcodes',
+      body: {
+        id: barcode.id,
+        barcode: barcode.barcode,
+      }
+    })
+    return barcode
+
+  }
+
+  async findAll({ page, take, filter, sort, order }: { page: number, take: number, filter: string, sort: string, order: string }) {
+    const skip = (page - 1) * take;
+    const query: FindManyOptions<Barcode> = {
+      order: { [sort]: order },
+      take,
+      skip,
+    }
+
+    if (filter) {
+      query.where = { barcode: Like('%' + filter + '%') }
+    }
+
+    const [result, total] = await this.barcodeRepo.findAndCount(query);
+
+    return { result, total }
   }
 
   findOne(id: number) {
@@ -30,6 +103,20 @@ export class BarcodesService {
       .where("id = :id", { id })
       .execute()
 
+    this.esClient.updateByQuery({
+      index: 'barcodes',
+      body: {
+        query: {
+          match: {
+            id,
+          }
+        },
+        script: {
+          source: `ctx._source.barcode='${updateBarcodeDto.barcode}'`,
+        },
+      }
+    })
+
     return updateResult.affected
   }
 
@@ -40,6 +127,41 @@ export class BarcodesService {
       .where("id = :id", { id })
       .execute()
 
+    this.esClient.deleteByQuery({
+      index: 'barcodes',
+      body: {
+        query: {
+          match: {
+            id,
+          }
+        }
+      }
+    })
+
     return deleteResult.affected
+  }
+
+  async suggest(barcode: string) {
+    const result = await this.esClient.search<Barcode>({
+      index: 'barcodes',
+      body: {
+        query: {
+          match: {
+            barcode: {
+              query: barcode,
+            }
+          }
+        }
+      }
+    })
+
+    return {
+      max_score: result.hits.max_score,
+      suggestion:
+        result.hits.hits.map((item) => ({
+          score: item._score,
+          data: { id: item._source.id, barcode: item._source.barcode }
+        }))
+    }
   }
 }

@@ -6,6 +6,7 @@ export const validationSchema = Joi.object({
         .valid('development', 'production', 'staging', 'local')
         .default('local'),
     PORT: Joi.number().default(3000),
-    DATABASE_USER: Joi.string().default("test"),
-    DATABASE_PASSWORD: Joi.string().default("test")
+    ELASTICSEARCH_NODE: Joi.string().default('http://localhost:9200'),
+    ELASTICSEARCH_USERNAME: Joi.string().default('elastic'),
+    ELASTICSEARCH_PASSWORD: Joi.string().default('admin'),
 })
