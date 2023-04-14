@@ -2,10 +2,11 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { BarcodesService } from './barcodes.service';
 import { CreateBarcodeDto } from './dto/create-barcode.dto';
 import { UpdateBarcodeDto } from './dto/update-barcode.dto';
+import { IdParams } from './dto/id-param.dto';
 
 @Controller('barcodes')
 export class BarcodesController {
-  constructor(private readonly barcodesService: BarcodesService) {}
+  constructor(private readonly barcodesService: BarcodesService) { }
 
   @Post()
   create(@Body() createBarcodeDto: CreateBarcodeDto) {
@@ -18,17 +19,17 @@ export class BarcodesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.barcodesService.findOne(+id);
+  findOne(@Param() params: IdParams) {
+    return this.barcodesService.findOne(params.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateBarcodeDto: UpdateBarcodeDto) {
-    return this.barcodesService.update(+id, updateBarcodeDto);
+  update(@Param() params: IdParams, @Body() updateBarcodeDto: UpdateBarcodeDto) {
+    return this.barcodesService.update(params.id, updateBarcodeDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.barcodesService.remove(+id);
+  remove(@Param() params: IdParams) {
+    return this.barcodesService.remove(params.id);
   }
 }
